@@ -6,9 +6,9 @@ import java.net.URISyntaxException;
 import java.security.Principal;
 
 import be.nabu.libs.events.api.EventDispatcher;
-import be.nabu.libs.resources.ResourceFactory;
 import be.nabu.libs.resources.ResourceUtils;
 import be.nabu.libs.resources.URIUtils;
+import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.libs.vfs.resources.api.SecurityManager;
 import be.nabu.libs.vfs.resources.api.TransformationManager;
 import be.nabu.libs.vfs.api.File;
@@ -26,11 +26,15 @@ public class ResourceFileSystem implements FileSystem {
 		this(dispatcher, path.matches("^[\\w]+:.*") ? new URI(path) : (path.startsWith("/") ? new URI("file:" + path) : new java.io.File(path).toURI()), principal);
 	}
 	
-	public ResourceFileSystem(EventDispatcher dispatcher, URI uri, Principal principal) throws IOException, URISyntaxException {
+	public ResourceFileSystem(EventDispatcher dispatcher, ResourceContainer<?> resource, Principal principal) throws IOException, URISyntaxException {
 		this.dispatcher = dispatcher;
 		this.principal = principal;
 		this.securityManager = new SimpleSecurityManager();
-		this.root = new ResourceFile(this, new URI("/"), getTransformationManager().transform(ResourceFactory.getInstance().resolve(uri, principal)), principal);
+		this.root = new ResourceFile(this, new URI("/"), getTransformationManager().transform(resource), principal);
+	}
+	
+	public ResourceFileSystem(EventDispatcher dispatcher, URI uri, Principal principal) throws IOException, URISyntaxException {
+		this(dispatcher, ResourceUtils.mkdir(uri, principal), principal);
 	}
 	
 	@Override
