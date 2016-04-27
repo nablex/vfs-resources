@@ -17,6 +17,7 @@ import be.nabu.libs.resources.api.Resource;
 import be.nabu.libs.resources.api.ResourceContainer;
 import be.nabu.libs.resources.api.TimestampedResource;
 import be.nabu.libs.resources.api.WritableResource;
+import be.nabu.libs.resources.api.features.CacheableResource;
 import be.nabu.utils.io.IOUtils;
 import be.nabu.libs.vfs.api.File;
 import be.nabu.libs.vfs.api.events.EventType;
@@ -31,8 +32,15 @@ public class ResourceFile implements File {
 	ResourceFile(ResourceFileSystem fileSystem, URI uri, Resource resource, Principal principal) {
 		this.fileSystem = fileSystem;
 		this.uri = uri;
-		this.resource = resource;
+		this.resource = preprocess(resource);
 		this.principal = principal;
+	}
+	
+	private Resource preprocess(Resource resource) {
+		if (resource instanceof CacheableResource) {
+			((CacheableResource) resource).setCaching(false);
+		}
+		return resource;
 	}
 	
 	@Override
@@ -161,7 +169,7 @@ public class ResourceFile implements File {
 	public OutputStream getOutputStream() throws IOException {
 		if (resource == null) {
 			fileSystem.getEventDispatcher().fire(new EventImpl(EventType.CREATE, this, false), this);
-			resource = ResourceUtils.touch(getFullPath(), principal);
+			resource = preprocess(ResourceUtils.touch(getFullPath(), principal));
 			fileSystem.getEventDispatcher().fire(new EventImpl(EventType.CREATE, this, true), this);
 		}
 		fileSystem.getEventDispatcher().fire(new EventImpl(EventType.WRITE, this, false), this);
@@ -172,7 +180,7 @@ public class ResourceFile implements File {
 	public void mkdir() throws IOException {
 		if (resource == null) {
 			fileSystem.getEventDispatcher().fire(new EventImpl(EventType.CREATE, this, false), this);
-			resource = ResourceUtils.mkdir(getFullPath(), principal);
+			resource = preprocess(ResourceUtils.mkdir(getFullPath(), principal));
 			fileSystem.getEventDispatcher().fire(new EventImpl(EventType.CREATE, this, true), this);
 		}
 	}
